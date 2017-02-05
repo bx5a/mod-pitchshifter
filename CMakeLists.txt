@@ -78,17 +78,6 @@ ExternalProject_add(external_lv2
 )
 set(lv2_include_dir ${lv2_install_dir}/include)
 
-# external project eigen
-set(eigen_install_dir ${CMAKE_BINARY_DIR}/eigen-install)
-ExternalProject_Add(external_eigen
-  HG_REPOSITORY "https://bitbucket.org/eigen/eigen/"
-  HG_TAG "3.2.9"
-  UPDATE_COMMAND ""
-  CMAKE_ARGS
-    "-DCMAKE_INSTALL_PREFIX=${eigen_install_dir}"
-)
-set(eigen_include_dir ${eigen_install_dir}/include/eigen3)
-
 # project definition
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -ffast-math -Wall -fPIC -DPIC")
 set(shared_sources
@@ -122,7 +111,6 @@ add_dependencies(SuperWhammy
   external_armadillo
   external_lv2
   generate_harmonizer_wisdom
-  external_eigen
 )
 target_include_directories(SuperWhammy
   PRIVATE
@@ -130,7 +118,6 @@ target_include_directories(SuperWhammy
     ${fftw_include_dir}
     ${armadillo_include_dir}
     ${lv2_include_dir}
-    ${eigen_include_dir}
 )
 target_link_libraries(SuperWhammy
   ${fftw_libraries}
