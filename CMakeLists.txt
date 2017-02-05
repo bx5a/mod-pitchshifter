@@ -96,9 +96,9 @@ set(shared_sources
   ${src}/Shared_files/window.cpp
   ${src}/Shared_files/window.h
 
-  ${src}/Freezer/fft.cc
+  ${src}/Freezer/fft.cpp
   ${src}/Freezer/fft.h
-  ${src}/Freezer/freeze.cc
+  ${src}/Freezer/freeze.cpp
   ${src}/Freezer/freeze.h
 )
 add_library(SuperWhammy

@@ -27,7 +27,7 @@ endif
 INSTALLATION_PATH = $(DESTDIR)$(INSTALL_PATH)/$(EFFECT_PATH)
 
 # sources and objects
-SRC = $(wildcard src/*.cpp) $(wildcard ../Shared_files/*.cpp)
+SRC = $(wildcard src/*.cpp) $(wildcard ../Shared_files/*.cpp) $(wildcard Freezer/*.cpp)
 OBJ = $(SRC:.cpp=.o)
 
 ## rules
