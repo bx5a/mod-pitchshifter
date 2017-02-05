@@ -2,6 +2,9 @@
 #include <cmath>
 #include "PitchShifterClasses.h"
 #include "GainClass.h"
+#include "../Freezer/freeze.h"
+
+#include <queue>
 
 /**********************************************************************************************************************************************************/
 
@@ -31,14 +34,22 @@ public:
         obja = new PSAnalysis(n_samples, nBuffers, wisdomFile);
         objs = new PSSinthesis(obja, wisdomFile);
         objg = new GainClass(n_samples);
+        freezer = new freeze::Freezer();
+        freezer->Init(1);
+      
+        const size_t kBufferLen = 256;
+        temp_buffer.resize(kBufferLen);
+      
+        dry_gain = 1;
 
         cont = 0;
     }
     void Destruct()
     {
-    	delete obja;
+        delete obja;
         delete objs;
         delete objg;
+        delete freezer;
     }
     void Realloc(uint32_t n_samples, int nBuffers)
     {
@@ -84,6 +95,11 @@ public:
     PSAnalysis *obja;
     PSSinthesis *objs;
     GainClass *objg;
+  
+    freeze::Freezer* freezer;
+    std::queue<float> input_queue, output_queue;
+    std::vector<float> temp_buffer;
+    float dry_gain;
 
     int nBuffers;
     int cont;
@@ -150,35 +166,66 @@ void SuperWhammy::run(LV2_Handle instance, uint32_t n_samples)
 
     float *in       = plugin->ports[IN];
     float *out      = plugin->ports[OUT];
-    double s        = (double)(*(plugin->ports[STEP]));
-    double gain     = (double)(*(plugin->ports[GAIN]));
-    double a        = (double)(*(plugin->ports[FIRST]));
-    double b        = (double)(*(plugin->ports[LAST]));
     int    c        = (int)(*(plugin->ports[CLEAN])+0.5f);
-    int    fidelity = (int)(*(plugin->ports[FIDELITY])+0.5f);
-
-    plugin->SetFidelity(fidelity, n_samples);
-
-    if (InputAbsSum(in, n_samples) == 0)
-    {
-        memset(out,0,sizeof(float)*n_samples);
-        return;
+  
+    // enable / disable on TOGGLE CLEAN button
+    bool enabled = c==1;
+    if (enabled && !plugin->freezer->IsEnabled()) {
+      plugin->freezer->Enable();
     }
-
-    double s_ = a + s*(b-a);
-	(plugin->objg)->SetGaindB(gain);    
-    (plugin->obja)->PreAnalysis(plugin->nBuffers, in);
-    (plugin->objs)->PreSinthesis();
-	
-	if (plugin->cont < plugin->nBuffers-1)
-		plugin->cont = plugin->cont + 1;
-	else
-	{
-        (plugin->obja)->Analysis();
-        (plugin->objs)->Sinthesis(s_);
-        (plugin->objg)->SimpleGain((plugin->objs)->yshift, out);
-        if (c == 1) for (uint32_t i = 0; i<n_samples; i++) out[i] += (plugin->obja)->frames[i];
-	}	
+    if (!enabled && plugin->freezer->IsEnabled()) {
+      plugin->freezer->Disable();
+    }
+  
+    // Dry gain factor
+    if (plugin->freezer->IsEnabled()) {
+      plugin->dry_gain *= 0.8;
+    } else {
+      plugin->dry_gain = 1.0 - (1.0 - plugin->dry_gain) * 0.8;
+    }
+  
+    // queue input data
+    for (int sample_idx=0; sample_idx < n_samples; sample_idx++) {
+      plugin->input_queue.push(in[sample_idx]);
+    }
+  
+    // dequeue as much data as possible
+    std::error_code err;
+    while (plugin->input_queue.size() > plugin->temp_buffer.size()) {
+      // Get data from input queue
+      for (int sample_idx = 0; sample_idx < plugin->temp_buffer.size(); sample_idx++) {
+        plugin->temp_buffer[sample_idx] = plugin->input_queue.front();
+        plugin->input_queue.pop();
+      }
+    
+      // write to freezer
+      plugin->freezer->Write(plugin->temp_buffer, err);
+      if (err) {
+        std::cout << "WARNING: Error while writing to freezer: " << err.message() << std::endl;
+      }
+    
+      // read from freezer
+      std::vector<float> result = plugin->freezer->Read(err);
+      if (err) {
+        std::cout << "WARNING: Error while reading from freezer: " << err.message() << std::endl;
+      }
+    
+      // Push data to output queue
+      for (int sample_idx = 0; sample_idx < result.size(); sample_idx++) {
+        plugin->output_queue.push(result[sample_idx] + plugin->dry_gain * plugin->temp_buffer[sample_idx]);
+      }
+    }
+  
+    // Fill output buffer
+    for (int sample_idx=0; sample_idx < n_samples; sample_idx++) {
+      // Zeros if we don't have enough data available
+      if (plugin->output_queue.empty()) {
+        out[sample_idx] = 0;
+        continue;
+      }
+      out[sample_idx] = plugin->output_queue.front();
+      plugin->output_queue.pop();
+    }
 }
 
 /**********************************************************************************************************************************************************/

@@ -78,6 +78,17 @@ ExternalProject_add(external_lv2
 )
 set(lv2_include_dir ${lv2_install_dir}/include)
 
+# external project eigen
+set(eigen_install_dir ${CMAKE_BINARY_DIR}/eigen-install)
+ExternalProject_Add(external_eigen
+  HG_REPOSITORY "https://bitbucket.org/eigen/eigen/"
+  HG_TAG "3.2.9"
+  UPDATE_COMMAND ""
+  CMAKE_ARGS
+    "-DCMAKE_INSTALL_PREFIX=${eigen_install_dir}"
+)
+set(eigen_include_dir ${eigen_install_dir}/include/eigen3)
+
 # project definition
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -ffast-math -Wall -fPIC -DPIC")
 set(shared_sources
@@ -95,6 +106,11 @@ set(shared_sources
   ${src}/Shared_files/PitchShifterClasses.h
   ${src}/Shared_files/window.cpp
   ${src}/Shared_files/window.h
+
+  ${src}/Freezer/fft.cc
+  ${src}/Freezer/fft.h
+  ${src}/Freezer/freeze.cc
+  ${src}/Freezer/freeze.h
 )
 add_library(SuperWhammy
   SHARED
@@ -106,6 +122,7 @@ add_dependencies(SuperWhammy
   external_armadillo
   external_lv2
   generate_harmonizer_wisdom
+  external_eigen
 )
 target_include_directories(SuperWhammy
   PRIVATE
@@ -113,6 +130,7 @@ target_include_directories(SuperWhammy
     ${fftw_include_dir}
     ${armadillo_include_dir}
     ${lv2_include_dir}
+    ${eigen_include_dir}
 )
 target_link_libraries(SuperWhammy
   ${fftw_libraries}
@@ -135,4 +153,3 @@ set(ttl_sources
 install(FILES ${ttl_sources} DESTINATION ".")
 install(DIRECTORY ${src}/SuperWhammy/ttl/modgui DESTINATION ".")
 install(TARGETS SuperWhammy LIBRARY DESTINATION ".")
-
