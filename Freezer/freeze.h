@@ -4,6 +4,7 @@
 #include <mutex>
 #include <system_error>
 #include <vector>
+#include <memory>
 
 namespace freeze {
 
