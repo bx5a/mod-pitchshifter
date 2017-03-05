@@ -1,13 +1,13 @@
 cmake_minimum_required(VERSION 3.0)
 
-project(SuperWhammy CXX)
+project(Freeze CXX)
 
 include(ExternalProject)
 
 set(src ${CMAKE_CURRENT_SOURCE_DIR})
 
 # install locally for now. A manual copy is required
-set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install/mod-superwhammy.lv2")
+set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install/mod-freeze.lv2")
 
 # external project needed: fftw3
 set(fftw_source_dir ${CMAKE_BINARY_DIR}/fftw-source)
@@ -101,42 +101,42 @@ set(shared_sources
   ${src}/Freezer/freeze.cpp
   ${src}/Freezer/freeze.h
 )
-add_library(SuperWhammy
+add_library(Freeze
   SHARED
-  ${src}/SuperWhammy/src/SuperWhammy.cpp
+  ${src}/Freeze/src/Freeze.cpp
   ${shared_sources}
 )
-add_dependencies(SuperWhammy
+add_dependencies(Freeze
   external_fftwf
   external_armadillo
   external_lv2
   generate_harmonizer_wisdom
 )
-target_include_directories(SuperWhammy
+target_include_directories(Freeze
   PRIVATE
     ${src}/Shared_files
     ${fftw_include_dir}
     ${armadillo_include_dir}
     ${lv2_include_dir}
 )
-target_link_libraries(SuperWhammy
+target_link_libraries(Freeze
   ${fftw_libraries}
   ${armadillo_libraries}
 )
 
-set_target_properties(SuperWhammy
+set_target_properties(Freeze
   PROPERTIES
     PREFIX ""
     SUFFIX ".so"
-    OUTPUT_NAME "mod-superwhammy"
+    OUTPUT_NAME "mod-freeze"
 )
 
 # install commands
 set(ttl_sources
-  ${src}/SuperWhammy/ttl/manifest.ttl
-  ${src}/SuperWhammy/ttl/SuperWhammy.ttl
+  ${src}/Freeze/ttl/manifest.ttl
+  ${src}/Freeze/ttl/Freeze.ttl
   ${wisdom_install_dir}/harmonizer.wisdom
 )
 install(FILES ${ttl_sources} DESTINATION ".")
-install(DIRECTORY ${src}/SuperWhammy/ttl/modgui DESTINATION ".")
-install(TARGETS SuperWhammy LIBRARY DESTINATION ".")
+install(DIRECTORY ${src}/Freeze/ttl/modgui DESTINATION ".")
+install(TARGETS Freeze LIBRARY DESTINATION ".")
